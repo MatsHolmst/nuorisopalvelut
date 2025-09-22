@@ -3,7 +3,7 @@
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
-    <title>Varaa Vuoro</title>
+    <title>Varaa kierros</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
@@ -18,20 +18,31 @@
         .boknings-knapp:disabled { background: #aaa; cursor: not-allowed; }
         .namn-input, .salasana-input { padding: 6px; border-radius: 6px; border: 1px solid #bbb; font-size: 1em; }
         .poista-knapp { background: #c0392b; }
+        .kello { text-align:center; margin-top:30px; font-size:1.5em; color:#ff0000; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Varaa Vuoro</h1>
+        <h1>Varaa kierros</h1>
         <p>Valitse vapaa aika ja kirjoita nimesi varataksesi. Kun aika on varattu, nimi näkyy ja kukaan muu ei voi varata sitä. Varaus voidaan poistaa vain salasanalla.</p>
-        <div class="tur-list" id="turList">
-            <!-- Kierros-rivit generoidaan tähän -->
-        </div>
+        <div class="tur-list" id="turList"></div>
+        <div class="kello">Kello on: <span id="kello">--:--:--</span></div>
     </div>
     <script>
         const ajat = ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"];
         let kierrokset = Array(ajat.length).fill(null);
-        const salasana = 'kanada'; // Muuta tähän haluamasi salasana
+        const salasana = 'kanada';
+
+        function paivitaKello() {
+            const nyt = new Date();
+            const hh = String(nyt.getHours()).padStart(2, '0');
+            const mm = String(nyt.getMinutes()).padStart(2, '0');
+            const ss = String(nyt.getSeconds()).padStart(2, '0');
+            document.getElementById('kello').textContent = `${hh}:${mm}:${ss}`;
+        }
+        setInterval(paivitaKello, 1000);
+        paivitaKello();
+
         function renderKierrokset() {
             const turList = document.getElementById('turList');
             turList.innerHTML = '';
@@ -61,6 +72,7 @@
                 turList.appendChild(turDiv);
             });
         }
+
         function naytaNimiInput(index) {
             const turList = document.getElementById('turList');
             const turDivs = turList.children;
@@ -90,6 +102,7 @@
             };
             turDiv.appendChild(vahvistaBtn);
         }
+
         function naytaSalasanaInput(index) {
             const turList = document.getElementById('turList');
             const turDivs = turList.children;
@@ -127,6 +140,7 @@
             peruutaBtn.onclick = () => renderKierrokset();
             turDiv.appendChild(peruutaBtn);
         }
+
         renderKierrokset();
     </script>
 </body>
