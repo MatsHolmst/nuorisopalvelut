@@ -26,6 +26,12 @@
         <h1>Varaa Vuoro!</h1>
         <p>Valitse vapaa aika ja kirjoita nimesi varataksesi. Kun aika on varattu, nimi näkyy ja kukaan muu ei voi varata sitä. Varaus voidaan poistaa vain salasanalla.</p>
         <div class="tur-list" id="turList"></div>
+        <div style="text-align:center; margin-top:20px;">
+        <button class="poista-knapp" onclick="naytaRaderaKaikki()">
+        Radera kaikki varaukset
+    </button>
+</div>
+
         <div class="kello">Kello on: <span id="kello">--:--:--</span></div>
     </div>
     <script>
@@ -140,6 +146,47 @@
             peruutaBtn.onclick = () => renderKierrokset();
             turDiv.appendChild(peruutaBtn);
         }
+        function naytaRaderaKaikki() {
+    const turList = document.getElementById('turList');
+
+    // Skapa popup-liknande rad
+    const div = document.createElement('div');
+    div.className = 'tur';
+    div.style.background = '#fce4e4';
+
+    const label = document.createElement('span');
+    label.textContent = 'Syötä salasana poistaaksesi kaikki varaukset:';
+    div.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.placeholder = 'Salasana';
+    input.className = 'salasana-input';
+    input.style.marginLeft = '10px';
+    div.appendChild(input);
+
+    const vahvistaBtn = document.createElement('button');
+    vahvistaBtn.className = 'poista-knapp';
+    vahvistaBtn.textContent = 'Vahvista';
+    vahvistaBtn.onclick = () => {
+        if (input.value === salasana) {
+            kierrokset = Array(ajat.length).fill(null);
+            renderKierrokset();
+        } else {
+            alert('Väärä salasana!');
+        }
+    };
+    div.appendChild(vahvistaBtn);
+
+    const peruutaBtn = document.createElement('button');
+    peruutaBtn.className = 'bekrafta-knapp';
+    peruutaBtn.textContent = 'Peruuta';
+    peruutaBtn.onclick = () => renderKierrokset();
+    div.appendChild(peruutaBtn);
+
+    // Visa denna rad *överst* i listan
+    turList.prepend(div);
+}
 
         renderKierrokset();
     </script>
