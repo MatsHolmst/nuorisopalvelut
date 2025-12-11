@@ -1,10 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
     <title>Varaa Vuoro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Gör den mer app-lik på iPad -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
     <style>
         body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
         .container { max-width: 400px; margin: 30px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -13,7 +17,7 @@
         .tur-list { margin-top: 24px; }
         .tur { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 12px; background: #eaf3fa; border-radius: 8px; }
         .tur.bokad { background: #d1e7dd; }
-        .tur-namn { font-weight: bold; }
+        .tur-namn { font-weight: bold; margin-right: 10px; }
         .boknings-knapp, .bekrafta-knapp, .poista-knapp { padding: 6px 12px; border: none; border-radius: 6px; background: #2a5d8f; color: #fff; cursor: pointer; font-size: 1em; margin-left: 6px; }
         .boknings-knapp:disabled { background: #aaa; cursor: not-allowed; }
         .namn-input, .salasana-input { padding: 6px; border-radius: 6px; border: 1px solid #bbb; font-size: 1em; }
@@ -24,20 +28,33 @@
 <body>
     <div class="container">
         <h1>Varaa Vuoro!</h1>
-        <p>Valitse vapaa aika ja kirjoita nimesi varataksesi. Kun aika on varattu, nimi näkyy ja kukaan muu ei voi varata sitä. Varaus voidaan poistaa vain salasanalla.</p>
+        <p>Valitse vapaa aika ja kirjoita nimesi varataksesi. Varaus säilyy, vaikka suljet sivun. Voit poistaa varauksen salasanalla.</p>
+
         <div class="tur-list" id="turList"></div>
+
+        <!-- Radera alla-knapp -->
         <div style="text-align:center; margin-top:20px;">
-        <button class="poista-knapp" onclick="naytaRaderaKaikki()">
-        Radera kaikki varaukset
-    </button>
-</div>
+            <button class="poista-knapp" onclick="naytaRaderaKaikki()">
+                Radera kaikki varaukset
+            </button>
+        </div>
 
         <div class="kello">Kello on: <span id="kello">--:--:--</span></div>
     </div>
+
     <script>
         const ajat = ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"];
         let kierrokset = Array(ajat.length).fill(null);
         const salasana = 'kanada';
+
+        // Lataa tallennetut varaukset
+        if (localStorage.getItem('kierrokset')) {
+            kierrokset = JSON.parse(localStorage.getItem('kierrokset'));
+        }
+
+        function tallenna() {
+            localStorage.setItem('kierrokset', JSON.stringify(kierrokset));
+        }
 
         function paivitaKello() {
             const nyt = new Date();
@@ -52,17 +69,21 @@
         function renderKierrokset() {
             const turList = document.getElementById('turList');
             turList.innerHTML = '';
+
             kierrokset.forEach((nimi, i) => {
                 const turDiv = document.createElement('div');
                 turDiv.className = 'tur' + (nimi ? ' bokad' : '');
+
                 const turNimi = document.createElement('span');
                 turNimi.className = 'tur-namn';
                 turNimi.textContent = ajat[i];
                 turDiv.appendChild(turNimi);
+
                 if (nimi) {
                     const nimiSpan = document.createElement('span');
                     nimiSpan.textContent = nimi;
                     turDiv.appendChild(nimiSpan);
+
                     const poistaBtn = document.createElement('button');
                     poistaBtn.className = 'poista-knapp';
                     poistaBtn.textContent = 'Poista varaus';
@@ -75,25 +96,29 @@
                     varaaBtn.onclick = () => naytaNimiInput(i);
                     turDiv.appendChild(varaaBtn);
                 }
+
                 turList.appendChild(turDiv);
             });
         }
 
         function naytaNimiInput(index) {
             const turList = document.getElementById('turList');
-            const turDivs = turList.children;
-            const turDiv = turDivs[index];
+            const turDiv = turList.children[index];
+
             turDiv.innerHTML = '';
+
             const turNimi = document.createElement('span');
             turNimi.className = 'tur-namn';
             turNimi.textContent = ajat[index];
             turDiv.appendChild(turNimi);
+
             const input = document.createElement('input');
             input.type = 'text';
             input.placeholder = 'Kirjoita nimesi';
             input.className = 'namn-input';
             input.maxLength = 30;
             turDiv.appendChild(input);
+
             const vahvistaBtn = document.createElement('button');
             vahvistaBtn.className = 'bekrafta-knapp';
             vahvistaBtn.textContent = 'Vahvista';
@@ -101,6 +126,7 @@
                 const nimi = input.value.trim();
                 if (nimi.length > 0) {
                     kierrokset[index] = nimi;
+                    tallenna();
                     renderKierrokset();
                 } else {
                     alert('Sinun täytyy kirjoittaa nimi!');
@@ -111,82 +137,85 @@
 
         function naytaSalasanaInput(index) {
             const turList = document.getElementById('turList');
-            const turDivs = turList.children;
-            const turDiv = turDivs[index];
+            const turDiv = turList.children[index];
+
             turDiv.innerHTML = '';
+
             const turNimi = document.createElement('span');
             turNimi.className = 'tur-namn';
             turNimi.textContent = ajat[index];
             turDiv.appendChild(turNimi);
+
             const nimiSpan = document.createElement('span');
             nimiSpan.textContent = kierrokset[index];
             turDiv.appendChild(nimiSpan);
+
             const input = document.createElement('input');
             input.type = 'password';
             input.placeholder = 'Salasana';
             input.className = 'salasana-input';
-            input.maxLength = 20;
             turDiv.appendChild(input);
+
             const poistaBtn = document.createElement('button');
             poistaBtn.className = 'poista-knapp';
             poistaBtn.textContent = 'Poista varaus';
             poistaBtn.onclick = () => {
-                const syote = input.value;
-                if (syote === salasana) {
+                if (input.value === salasana) {
                     kierrokset[index] = null;
+                    tallenna();
                     renderKierrokset();
                 } else {
                     alert('Väärä salasana!');
                 }
             };
             turDiv.appendChild(poistaBtn);
+
             const peruutaBtn = document.createElement('button');
             peruutaBtn.className = 'bekrafta-knapp';
             peruutaBtn.textContent = 'Peruuta';
             peruutaBtn.onclick = () => renderKierrokset();
             turDiv.appendChild(peruutaBtn);
         }
+
         function naytaRaderaKaikki() {
-    const turList = document.getElementById('turList');
+            const turList = document.getElementById('turList');
 
-    // Skapa popup-liknande rad
-    const div = document.createElement('div');
-    div.className = 'tur';
-    div.style.background = '#fce4e4';
+            const div = document.createElement('div');
+            div.className = 'tur';
+            div.style.background = '#fce4e4';
 
-    const label = document.createElement('span');
-    label.textContent = 'Syötä salasana poistaaksesi kaikki varaukset:';
-    div.appendChild(label);
+            const label = document.createElement('span');
+            label.textContent = 'Syötä salasana poistaaksesi kaikki varaukset:';
+            div.appendChild(label);
 
-    const input = document.createElement('input');
-    input.type = 'password';
-    input.placeholder = 'Salasana';
-    input.className = 'salasana-input';
-    input.style.marginLeft = '10px';
-    div.appendChild(input);
+            const input = document.createElement('input');
+            input.type = 'password';
+            input.placeholder = 'Salasana';
+            input.className = 'salasana-input';
+            div.appendChild(input);
 
-    const vahvistaBtn = document.createElement('button');
-    vahvistaBtn.className = 'poista-knapp';
-    vahvistaBtn.textContent = 'Vahvista';
-    vahvistaBtn.onclick = () => {
-        if (input.value === salasana) {
-            kierrokset = Array(ajat.length).fill(null);
-            renderKierrokset();
-        } else {
-            alert('Väärä salasana!');
+            const btn = document.createElement('button');
+            btn.className = 'poista-knapp';
+            btn.textContent = 'Vahvista';
+            btn.onclick = () => {
+                if (input.value === salasana) {
+                    kierrokset = Array(ajat.length).fill(null);
+                    localStorage.removeItem('kierrokset');
+                    renderKierrokset();
+                } else {
+                    alert('Väärä salasana!');
+                }
+            };
+            div.appendChild(btn);
+
+            const peruuta = document.createElement('button');
+            peruuta.className = 'bekrafta-knapp';
+            peruuta.textContent = 'Peruuta';
+            peruuta.onclick = () => renderKierrokset();
+            div.appendChild(peruuta);
+
+            turList.prepend(div);
         }
-    };
-    div.appendChild(vahvistaBtn);
-
-    const peruutaBtn = document.createElement('button');
-    peruutaBtn.className = 'bekrafta-knapp';
-    peruutaBtn.textContent = 'Peruuta';
-    peruutaBtn.onclick = () => renderKierrokset();
-    div.appendChild(peruutaBtn);
-
-    // Visa denna rad *överst* i listan
-    turList.prepend(div);
-}
 
         renderKierrokset();
     </script>
