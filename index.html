@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pelihuone">
+<meta name="theme-color" content="#1e1633">
+<title>Pelihuone – varaa vuoro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1e1633; --panel:#2b2149; --panel2:#352a5b; --text:#f5f0ff; --muted:#b9acd9;
+    --free:#2ec4b6; --free-ink:#06302c; --busy:#ff5c7a; --now:#ffd166; --past:#3a3160;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+    font-family:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:18px}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px 8px;flex-wrap:wrap}
+  h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.02em}
+  .right{display:flex;align-items:center;gap:10px}
+  .clock{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+  .date{color:var(--muted);font-size:1rem;text-align:right}
+  .langs{display:flex;gap:4px}
+  .langs button{border:0;background:var(--panel);color:var(--muted);font:inherit;font-weight:700;font-size:.9rem;padding:10px 12px;border-radius:10px;cursor:pointer;min-height:44px}
+  .langs button.active{background:var(--panel2);color:var(--text)}
+  .gear{background:var(--panel);border:0;color:var(--text);font:inherit;font-weight:700;font-size:.95rem;padding:10px 16px;cursor:pointer;border-radius:12px;min-height:44px}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--now);outline-offset:2px}
+  .banner{margin:6px 28px 0;display:inline-block;background:var(--now);color:#3b2b00;font-weight:800;padding:8px 18px;border-radius:999px}
+  nav{display:flex;gap:10px;padding:12px 28px;overflow-x:auto}
+  nav button{flex:0 0 auto;border:0;border-radius:var(--radius);padding:16px 24px;background:var(--panel);
+    color:var(--text);font:inherit;font-weight:700;cursor:pointer;min-height:58px}
+  nav button.active{background:var(--now);color:#3b2b00}
+  main{padding:8px 28px 40px;max-width:1100px;margin:0 auto}
+  .hint{color:var(--muted);margin:4px 0 18px;max-width:70ch}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  .slot{border:0;border-radius:var(--radius);padding:18px 16px;min-height:96px;text-align:left;font:inherit;
+    display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+  .slot .t{font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .slot .s{font-size:1rem;font-weight:500;overflow-wrap:anywhere}
+  .slot.free{background:var(--free);color:var(--free-ink);cursor:pointer}
+  .slot.busy{background:var(--busy);color:#3d0612;cursor:default}
+  .slot.past{background:var(--past);color:#8f83b8;cursor:default}
+  .slot.now{box-shadow:0 0 0 5px var(--now)}
+  .overview{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .card{background:var(--panel);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:10px}
+  .card h2{margin:0;font-size:1.4rem}
+  .card .big{font-size:1.1rem}
+  .badge{display:inline-block;border-radius:999px;padding:6px 14px;font-weight:700;font-size:.95rem;width:fit-content}
+  .badge.free{background:var(--free);color:var(--free-ink)}
+  .badge.busy{background:var(--busy);color:#3d0612}
+  .card button{margin-top:6px;border:0;border-radius:14px;padding:14px;background:var(--panel2);color:var(--text);font:inherit;font-weight:700;cursor:pointer;min-height:52px}
+  .overlay{position:fixed;inset:0;background:rgba(10,6,24,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+  .modal{background:var(--panel);border-radius:24px;padding:28px;width:min(480px,100%);display:flex;flex-direction:column;gap:14px}
+  .modal h3{margin:0;font-size:1.5rem}
+  .modal p{margin:0;color:var(--muted)}
+  .err{color:var(--busy);min-height:1.3em;font-weight:500}
+  input[type=text],input[type=password],input[type=number]{font:inherit;color:var(--text);background:var(--bg);border:2px solid var(--panel2);border-radius:14px;padding:14px 16px;width:100%;min-height:54px}
+  .row{display:flex;gap:10px}
+  .btn{border:0;border-radius:14px;padding:14px 22px;font:inherit;font-weight:700;cursor:pointer;min-height:54px;flex:1}
+  .btn.primary{background:var(--now);color:#3b2b00}
+  .btn.danger{background:var(--busy);color:#3d0612}
+  .btn.ghost{background:var(--panel2);color:var(--text)}
+  .admin section{background:var(--panel);border-radius:var(--radius);padding:22px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
+  .admin h2{margin:0 0 2px;font-size:1.3rem}
+  .admin h4{margin:8px 0 0;font-size:1.05rem;color:var(--muted)}
+  .admin label.f{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:.95rem}
+  .check{display:flex;align-items:center;gap:12px;min-height:44px;color:var(--text)}
+  .check input{width:26px;height:26px}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .seg button{border:3px solid transparent;border-radius:var(--radius);padding:18px;background:var(--panel2);color:var(--text);font:inherit;font-weight:700;cursor:pointer;text-align:left;min-height:84px}
+  .seg button small{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+  .seg button.active{background:var(--now);color:#3b2b00}
+  .seg button.active small{color:#5a4300}
+  .item{display:flex;align-items:center;gap:12px;background:var(--panel2);border-radius:14px;padding:10px 10px 10px 16px}
+  .item .txt{flex:1;overflow-wrap:anywhere}
+  .item .btn{flex:0 0 auto;padding:10px 18px;min-height:46px}
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--now);color:#3b2b00;
+    padding:14px 24px;border-radius:999px;font-weight:700;z-index:20;max-width:90%;text-align:center}
+  @media (max-width:600px){.seg{grid-template-columns:1fr} h1{font-size:1.5rem} .clock{font-size:1.5rem}}
+  @media (prefers-reduced-motion:no-preference){.overlay{animation:fade .15s ease-out}@keyframes fade{from{opacity:0}}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <div class="right">
+    <div class="langs" id="langs"></div>
+    <div><div class="clock" id="clock"></div><div class="date" id="date"></div></div>
+    <button class="gear" id="gear"></button>
+  </div>
+</header>
+<div id="bannerWrap"></div>
+<nav id="tabs"></nav>
+<main id="view"></main>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "pelihuone-v2";
+
+  /* ---------- kiinteät asetukset ---------- */
+  var CONSOLES = ["ps5","sw2","sw1","sw3","sim"];
+  var SESSIONS = {
+    afternoon: {open: 13*60, close: 16*60+30, len: 20},
+    evening:   {open: 17*60, close: 21*60,    len: 30}
+  };
+  var SESSION_ORDER = ["afternoon","evening"];
+
+  /* ---------- kielet ---------- */
+  var T = {
+    fi: {
+      title:"Pelihuone", locale:"fi-FI", overview:"Yleiskatsaus", leader:"Ohjaaja",
+      c_ps5:"PS5", c_sw2:"Switch 2", c_sw1:"Switch #1", c_sw3:"Switch #2", c_sim:"Ajosimulaattori",
+      s_afternoon:"Iltapäivä", s_evening:"Ilta",
+      hintOverview:"Valitse laite ja varaa vuoro.",
+      hintConsole:"Vihreä vuoro on vapaa – paina sitä ja kirjoita nimesi. Punaiset ovat jo varattuja. Varattua vuoroa ei voi perua itse, vain ohjaaja voi vapauttaa sen. Voit varata enintään {n} vuoroa kerrallaan.",
+      free:"Vapaa", past:"Mennyt", ended:"{n} (päättynyt)",
+      freeNow:"Vapaana nyt", playingNow:"Pelaa nyt: {n}", nextFree:"Seuraava vapaa vuoro: {t}",
+      noMore:"Ei enää vapaita vuoroja", opensAt:"Alkaa klo {t}", closed:"Tältä jaksolta ei enää vuoroja",
+      showSlots:"Näytä vuorot",
+      bookTitle:"Varaa {a}–{b}", yourName:"Kirjoita nimesi", namePh:"Nimesi",
+      bookWarn:"Vahvistuksen jälkeen vuoro lukittuu. Vain ohjaaja voi poistaa sen.",
+      confirm:"Vahvista varaus", back:"Takaisin",
+      needName:"Kirjoita ensin nimesi.", taken:"Joku ehti varata tämän vuoron ensin.",
+      limit:"Sinulla on jo {n} vuoroa. Odota, että yksi päättyy.",
+      booked:"Valmis! {n} – {c} klo {t}",
+      leaderTitle:"Ohjaajan kirjautuminen", leaderText:"Kirjoita salasana.", passPh:"Salasana", open:"Avaa", wrongPass:"Väärä salasana.",
+      panel:"Ohjaajan näkymä",
+      sessionH:"Käytössä oleva jakso", sessionHint:"Tämä näkyy nuorille. Vaihda jakso tarvittaessa.",
+      bookingsH:"Varaukset", noBookings:"Ei varauksia.", remove:"Poista",
+      removeTitle:"Poistetaanko varaus?", removeText:"{n} – {c} {t}. Vuoro vapautuu.", removeOk:"Poista varaus",
+      removed:"Varaus poistettu.",
+      optionsH:"Asetukset", hidePast:"Estä jo menneet vuorot", maxPer:"Enintään vuoroa / henkilö",
+      saved:"Tallennettu.",
+      clearH:"Uusi päivä", clearBtn:"Tyhjennä kaikki varaukset", clearTitle:"Tyhjennetäänkö kaikki varaukset?",
+      clearText:"Kaikki varaukset sekä iltapäivältä että illalta poistetaan.", clearOk:"Tyhjennä", cleared:"Kaikki varaukset on poistettu.",
+      passH:"Salasana", newPass:"Uusi salasana", passShort:"Salasanassa on oltava vähintään 4 merkkiä.",
+      done:"Valmis – takaisin nuorten näkymään", storageErr:"Tallennus ei onnistunut – selain estää sen."
+    },
+    sv: {
+      title:"Spelrummet", locale:"sv-SE", overview:"Översikt", leader:"Ledare",
+      c_ps5:"PS5", c_sw2:"Switch 2", c_sw1:"Switch #1", c_sw3:"Switch #2", c_sim:"Körsimulator",
+      s_afternoon:"Eftermiddag", s_evening:"Kväll",
+      hintOverview:"Välj en enhet och boka en tur.",
+      hintConsole:"Gröna turer är lediga – tryck på en och skriv ditt namn. Röda är redan bokade. En bokad tur kan du inte avboka själv, bara en ledare kan frigöra den. Du kan ha högst {n} turer åt gången.",
+      free:"Ledig", past:"Förbi", ended:"{n} (slut)",
+      freeNow:"Ledig nu", playingNow:"Spelar nu: {n}", nextFree:"Nästa lediga tur: {t}",
+      noMore:"Inga fler lediga turer", opensAt:"Börjar kl. {t}", closed:"Inga fler turer under det här passet",
+      showSlots:"Visa turer",
+      bookTitle:"Boka {a}–{b}", yourName:"Skriv ditt namn", namePh:"Ditt namn",
+      bookWarn:"När du bekräftar låser sig turen. Bara en ledare kan ta bort den.",
+      confirm:"Bekräfta bokning", back:"Tillbaka",
+      needName:"Skriv ditt namn först.", taken:"Någon hann boka turen före dig.",
+      limit:"Du har redan {n} turer. Vänta tills en är slut.",
+      booked:"Klart! {n} – {c} kl. {t}",
+      leaderTitle:"Ledarinloggning", leaderText:"Skriv lösenordet.", passPh:"Lösenord", open:"Öppna", wrongPass:"Fel lösenord.",
+      panel:"Ledarvy",
+      sessionH:"Aktivt pass", sessionHint:"Detta visas för ungdomarna. Byt pass vid behov.",
+      bookingsH:"Bokningar", noBookings:"Inga bokningar.", remove:"Ta bort",
+      removeTitle:"Ta bort bokningen?", removeText:"{n} – {c} {t}. Turen blir ledig.", removeOk:"Ta bort bokning",
+      removed:"Bokningen är borttagen.",
+      optionsH:"Inställningar", hidePast:"Blockera turer som redan gått", maxPer:"Högst antal turer / person",
+      saved:"Sparat.",
+      clearH:"Ny dag", clearBtn:"Töm alla bokningar", clearTitle:"Tömma alla bokningar?",
+      clearText:"Alla bokningar för både eftermiddag och kväll tas bort.", clearOk:"Töm", cleared:"Alla bokningar är borttagna.",
+      passH:"Lösenord", newPass:"Nytt lösenord", passShort:"Lösenordet måste ha minst 4 tecken.",
+      done:"Klar – tillbaka till ungdomsvyn", storageErr:"Kunde inte spara – webbläsaren blockerar lagring."
+    },
+    en: {
+      title:"Game room", locale:"en-GB", overview:"Overview", leader:"Leader",
+      c_ps5:"PS5", c_sw2:"Switch 2", c_sw1:"Switch #1", c_sw3:"Switch #2", c_sim:"Driving simulator",
+      s_afternoon:"Afternoon", s_evening:"Evening",
+      hintOverview:"Pick a device and book a turn.",
+      hintConsole:"Green turns are free – tap one and type your name. Red ones are already booked. You can't cancel a booking yourself; only a leader can free it. You can hold up to {n} turns at a time.",
+      free:"Free", past:"Over", ended:"{n} (ended)",
+      freeNow:"Free now", playingNow:"Playing now: {n}", nextFree:"Next free turn: {t}",
+      noMore:"No more free turns", opensAt:"Starts at {t}", closed:"No more turns in this session",
+      showSlots:"Show turns",
+      bookTitle:"Book {a}–{b}", yourName:"Type your name", namePh:"Your name",
+      bookWarn:"Once you confirm, the turn is locked. Only a leader can remove it.",
+      confirm:"Confirm booking", back:"Back",
+      needName:"Type your name first.", taken:"Someone booked this turn just before you.",
+      limit:"You already have {n} turns. Wait until one ends.",
+      booked:"Done! {n} – {c} at {t}",
+      leaderTitle:"Leader login", leaderText:"Enter the password.", passPh:"Password", open:"Open", wrongPass:"Wrong password.",
+      panel:"Leader view",
+      sessionH:"Active session", sessionHint:"This is what the young people see. Switch when needed.",
+      bookingsH:"Bookings", noBookings:"No bookings.", remove:"Remove",
+      removeTitle:"Remove this booking?", removeText:"{n} – {c} {t}. The turn becomes free.", removeOk:"Remove booking",
+      removed:"Booking removed.",
+      optionsH:"Settings", hidePast:"Block turns that have already passed", maxPer:"Max turns / person",
+      saved:"Saved.",
+      clearH:"New day", clearBtn:"Clear all bookings", clearTitle:"Clear all bookings?",
+      clearText:"All bookings for both afternoon and evening will be removed.", clearOk:"Clear", cleared:"All bookings have been cleared.",
+      passH:"Password", newPass:"New password", passShort:"The password needs at least 4 characters.",
+      done:"Done – back to the youth view", storageErr:"Could not save – the browser is blocking storage."
+    }
+  };
+
+  /* ---------- tila ---------- */
+  var DEFAULTS = { cfg:{ session:"afternoon", password:"1234", maxPerPerson:2, hidePast:true }, res:{}, lang:"fi" };
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){
+        var d = JSON.parse(raw);
+        return { cfg:Object.assign({}, DEFAULTS.cfg, d.cfg||{}), res:d.res||{}, lang:T[d.lang]?d.lang:"fi" };
+      }
+    }catch(e){}
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+  var state = load();
+  var ui = { tab:"overview", leader:false };
+
+  function t(key, vars){
+    var s = (T[state.lang][key] !== undefined) ? T[state.lang][key] : T.fi[key];
+    if(vars) Object.keys(vars).forEach(function(k){ s = s.replace("{"+k+"}", vars[k]); });
+    return s;
+  }
+  function save(){
+    var keys = Object.keys(state.res).sort();
+    while(keys.length > 7){ delete state.res[keys.shift()]; }
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ toast(t("storageErr")); }
+  }
+
+  /* ---------- apufunktiot ---------- */
+  function todayKey(){ return new Date().toLocaleDateString("sv-SE"); }
+  function fmt(m){ var h = Math.floor(m/60), mm = m%60; return (h<10?"0":"")+h+":"+(mm<10?"0":"")+mm; }
+  function nowMin(){ var d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+  function slotsOf(sess){
+    var S = SESSIONS[sess], out = [];
+    for(var x=S.open; x+S.len<=S.close; x+=S.len) out.push({start:x, end:x+S.len});
+    return out;
+  }
+  function sessRange(sess){ return fmt(SESSIONS[sess].open)+"–"+fmt(SESSIONS[sess].close); }
+  function dayRes(sess, cid){
+    var k = todayKey();
+    if(!state.res[k]) state.res[k] = {};
+    if(!state.res[k][sess]) state.res[k][sess] = {};
+    if(cid && !state.res[k][sess][cid]) state.res[k][sess][cid] = {};
+    return cid ? state.res[k][sess][cid] : state.res[k][sess];
+  }
+  function getBooking(sess, cid, start){ return dayRes(sess, cid)[start]; }
+  function cname(cid){ return t("c_"+cid); }
+  function isPast(sl){ return state.cfg.hidePast && sl.end <= nowMin(); }
+
+  function el(tag, props, kids){
+    var n = document.createElement(tag);
+    Object.keys(props||{}).forEach(function(k){
+      if(k==="class") n.className = props[k];
+      else if(k==="text") n.textContent = props[k];
+      else if(k.indexOf("on")===0) n.addEventListener(k.slice(2), props[k]);
+      else n.setAttribute(k, props[k]);
+    });
+    (kids||[]).forEach(function(c){ if(c) n.appendChild(c); });
+    return n;
+  }
+  function toast(msg){
+    var x = el("div",{class:"toast",role:"status",text:msg});
+    document.body.appendChild(x);
+    setTimeout(function(){ x.remove(); }, 3000);
+  }
+
+  /* ---------- modal ---------- */
+  function modal(o){
+    var err = el("div",{class:"err",role:"alert"}), input = null;
+    var kids = [el("h3",{text:o.title})];
+    if(o.text) kids.push(el("p",{text:o.text}));
+    if(o.input){
+      input = el("input",{type:o.input.type||"text",placeholder:o.input.placeholder||"",maxlength:o.input.max||24,
+        autocomplete:"off",autocapitalize:o.input.cap||"words","aria-label":o.input.placeholder||o.title});
+      kids.push(input);
+    }
+    if(o.note) kids.push(el("p",{text:o.note,style:"color:var(--now)"}));
+    kids.push(err);
+    var overlay = el("div",{class:"overlay"});
+    function close(){ overlay.remove(); }
+    function submit(){
+      var r = o.onOk(input ? input.value.trim() : null);
+      if(typeof r === "string"){ err.textContent = r; return; }
+      close();
+    }
+    kids.push(el("div",{class:"row"},[
+      el("button",{class:"btn ghost",text:t("back"),onclick:close}),
+      el("button",{class:"btn "+(o.danger?"danger":"primary"),text:o.okLabel,onclick:submit})
+    ]));
+    overlay.appendChild(el("div",{class:"modal",role:"dialog","aria-modal":"true"},kids));
+    overlay.addEventListener("click",function(e){ if(e.target===overlay) close(); });
+    document.body.appendChild(overlay);
+    if(input){
+      input.addEventListener("keydown",function(e){ if(e.key==="Enter") submit(); });
+      setTimeout(function(){ input.focus(); }, 50);
+    }
+  }
+
+  /* ---------- varaus ---------- */
+  function countFor(sess, name){
+    var n = 0, all = dayRes(sess), len = SESSIONS[sess].len;
+    Object.keys(all).forEach(function(cid){
+      Object.keys(all[cid]).forEach(function(s){
+        var ended = state.cfg.hidePast && (+s)+len <= nowMin();
+        if(all[cid][s].toLowerCase()===name.toLowerCase() && !ended) n++;
+      });
+    });
+    return n;
+  }
+  function book(sess, cid, sl){
+    modal({
+      title:t("bookTitle",{a:fmt(sl.start),b:fmt(sl.end)}),
+      text:cname(cid)+" · "+t("yourName"),
+      input:{placeholder:t("namePh")},
+      note:t("bookWarn"),
+      okLabel:t("confirm"),
+      onOk:function(name){
+        if(!name) return t("needName");
+        if(getBooking(sess,cid,sl.start)) return t("taken");
+        var max = +state.cfg.maxPerPerson;
+        if(max > 0 && countFor(sess,name) >= max) return t("limit",{n:max});
+        dayRes(sess,cid)[sl.start] = name;
+        save(); render();
+        toast(t("booked",{n:name,c:cname(cid),t:fmt(sl.start)}));
+      }
+    });
+  }
+
+  /* ---------- nuorten näkymät ---------- */
+  function renderTabs(){
+    var nav = document.getElementById("tabs");
+    nav.innerHTML = "";
+    if(ui.leader) return;
+    var items = [{id:"overview",name:t("overview")}].concat(CONSOLES.map(function(c){ return {id:c,name:cname(c)}; }));
+    items.forEach(function(it){
+      var b = el("button",{text:it.name,onclick:function(){ ui.tab = it.id; render(); }});
+      if(ui.tab===it.id) b.className = "active";
+      nav.appendChild(b);
+    });
+  }
+
+  function renderOverview(view){
+    var sess = state.cfg.session, all = slotsOf(sess), now = nowMin();
+    view.appendChild(el("p",{class:"hint",text:t("hintOverview")}));
+    var wrap = el("div",{class:"overview"});
+    CONSOLES.forEach(function(cid){
+      var cur = all.filter(function(s){ return now>=s.start && now<s.end; })[0];
+      var who = cur ? getBooking(sess,cid,cur.start) : null;
+      var next = all.filter(function(s){ return s.end>now && !getBooking(sess,cid,s.start) && !(cur && s.start===cur.start); })[0];
+      var kids = [el("h2",{text:cname(cid)})];
+      if(now < SESSIONS[sess].open) kids.push(el("div",{class:"big",text:t("opensAt",{t:fmt(SESSIONS[sess].open)})}));
+      else if(now >= SESSIONS[sess].close) kids.push(el("div",{class:"big",text:t("closed")}));
+      else{
+        kids.push(who ? el("span",{class:"badge busy",text:t("playingNow",{n:who})}) : el("span",{class:"badge free",text:t("freeNow")}));
+        kids.push(el("div",{class:"big",text: next ? t("nextFree",{t:fmt(next.start)}) : t("noMore")}));
+      }
+      kids.push(el("button",{text:t("showSlots"),onclick:function(){ ui.tab=cid; render(); }}));
+      wrap.appendChild(el("div",{class:"card"},kids));
+    });
+    view.appendChild(wrap);
+  }
+
+  function renderConsole(view, cid){
+    var sess = state.cfg.session, now = nowMin();
+    view.appendChild(el("h2",{text:cname(cid),style:"margin:0 0 4px"}));
+    var max = +state.cfg.maxPerPerson;
+    view.appendChild(el("p",{class:"hint",text:t("hintConsole",{n:max>0?max:"∞"})}));
+    var grid = el("div",{class:"grid"});
+    slotsOf(sess).forEach(function(sl){
+      var who = getBooking(sess,cid,sl.start), past = isPast(sl), isNow = now>=sl.start && now<sl.end;
+      var cls = "slot " + (past ? "past" : who ? "busy" : "free") + (isNow ? " now" : "");
+      var label = who ? (past ? t("ended",{n:who}) : who) : (past ? t("past") : t("free"));
+      var b = el("button",{class:cls},[
+        el("span",{class:"t",text:fmt(sl.start)+"–"+fmt(sl.end)}),
+        el("span",{class:"s",text:label})
+      ]);
+      if(who || past){ b.disabled = true; b.setAttribute("aria-disabled","true"); }
+      else b.addEventListener("click",function(){ book(sess,cid,sl); });
+      grid.appendChild(b);
+    });
+    view.appendChild(grid);
+  }
+
+  /* ---------- ohjaajan näkymä ---------- */
+  function renderLeader(view){
+    var wrap = el("div",{class:"admin"});
+    wrap.appendChild(el("h2",{text:t("panel"),style:"font-size:1.6rem;margin:0 0 14px"}));
+
+    // Jakso
+    var seg = el("div",{class:"seg"});
+    SESSION_ORDER.forEach(function(s){
+      var b = el("button",{onclick:function(){ state.cfg.session = s; save(); render(); }},[
+        el("span",{text:t("s_"+s)}),
+        el("small",{text:sessRange(s)+" · "+SESSIONS[s].len+" min"})
+      ]);
+      if(state.cfg.session===s) b.className = "active";
+      seg.appendChild(b);
+    });
+    wrap.appendChild(el("section",{},[el("h2",{text:t("sessionH")}), el("p",{class:"hint",style:"margin:0",text:t("sessionHint")}), seg]));
+
+    // Varaukset
+    var sB = el("section",{},[el("h2",{text:t("bookingsH")})]);
+    var any = false;
+    SESSION_ORDER.forEach(function(s){
+      var rows = [];
+      CONSOLES.forEach(function(cid){
+        var r = dayRes(s,cid);
+        Object.keys(r).map(Number).sort(function(a,b){return a-b;}).forEach(function(st){
+          rows.push({cid:cid, start:st, end:st+SESSIONS[s].len, name:r[st]});
+        });
+      });
+      if(!rows.length) return;
+      any = true;
+      sB.appendChild(el("h4",{text:t("s_"+s)+" · "+sessRange(s)}));
+      rows.forEach(function(row){
+        var when = fmt(row.start)+"–"+fmt(row.end);
+        sB.appendChild(el("div",{class:"item"},[
+          el("div",{class:"txt",text:when+" · "+cname(row.cid)+" · "+row.name}),
+          el("button",{class:"btn danger",text:t("remove"),onclick:function(){
+            modal({title:t("removeTitle"),text:t("removeText",{n:row.name,c:cname(row.cid),t:when}),okLabel:t("removeOk"),danger:true,
+              onOk:function(){ delete dayRes(s,row.cid)[row.start]; save(); render(); toast(t("removed")); }});
+          }})
+        ]));
+      });
+    });
+    if(!any) sB.appendChild(el("p",{class:"hint",style:"margin:0",text:t("noBookings")}));
+    wrap.appendChild(sB);
+
+    // Uusi päivä
+    wrap.appendChild(el("section",{},[
+      el("h2",{text:t("clearH")}),
+      el("button",{class:"btn danger",text:t("clearBtn"),onclick:function(){
+        modal({title:t("clearTitle"),text:t("clearText"),okLabel:t("clearOk"),danger:true,onOk:function(){
+          state.res = {}; save(); render(); toast(t("cleared"));
+        }});
+      }})
+    ]));
+
+    // Asetukset
+    var chk = el("input",{type:"checkbox"}); chk.checked = !!state.cfg.hidePast;
+    chk.addEventListener("change",function(){ state.cfg.hidePast = chk.checked; save(); toast(t("saved")); });
+    var num = el("input",{type:"number",min:"0",max:"10",value:String(state.cfg.maxPerPerson)});
+    num.addEventListener("change",function(){ var v = Math.max(0,Math.min(10,parseInt(num.value,10)||0)); num.value = v; state.cfg.maxPerPerson = v; save(); toast(t("saved")); });
+    wrap.appendChild(el("section",{},[
+      el("h2",{text:t("optionsH")}),
+      el("label",{class:"check"},[chk, el("span",{text:t("hidePast")})]),
+      el("label",{class:"f"},[el("span",{text:t("maxPer")+" (0 = ∞)"}), num])
+    ]));
+
+    // Salasana
+    var pw = el("input",{type:"text",placeholder:t("newPass"),maxlength:"30",autocomplete:"off","aria-label":t("newPass")});
+    pw.addEventListener("change",function(){
+      var v = pw.value.trim();
+      if(v.length<4){ toast(t("passShort")); return; }
+      state.cfg.password = v; pw.value = ""; save(); toast(t("saved"));
+    });
+    wrap.appendChild(el("section",{},[el("h2",{text:t("passH")}), pw]));
+
+    wrap.appendChild(el("button",{class:"btn primary",text:t("done"),style:"width:100%",onclick:function(){ ui.leader=false; ui.tab="overview"; render(); }}));
+    view.appendChild(wrap);
+  }
+
+  /* ---------- yleinen ---------- */
+  function renderStatic(){
+    document.documentElement.lang = state.lang;
+    document.title = t("title");
+    document.getElementById("title").textContent = t("title");
+    document.getElementById("gear").textContent = t("leader");
+    var lw = document.getElementById("langs");
+    lw.innerHTML = "";
+    [["fi","FI"],["sv","SV"],["en","EN"]].forEach(function(p){
+      var b = el("button",{text:p[1],"aria-label":p[1],onclick:function(){ state.lang=p[0]; save(); tick(); render(); }});
+      if(state.lang===p[0]) b.className = "active";
+      lw.appendChild(b);
+    });
+    var bw = document.getElementById("bannerWrap");
+    bw.innerHTML = "";
+    if(!ui.leader){
+      var s = state.cfg.session;
+      bw.appendChild(el("div",{class:"banner",text:t("s_"+s)+" · "+sessRange(s)}));
+    }
+  }
+
+  function render(){
+    renderStatic();
+    renderTabs();
+    var view = document.getElementById("view");
+    view.innerHTML = "";
+    if(ui.leader) renderLeader(view);
+    else if(ui.tab==="overview" || CONSOLES.indexOf(ui.tab)<0) renderOverview(view);
+    else renderConsole(view, ui.tab);
+  }
+
+  function tick(){
+    var d = new Date();
+    document.getElementById("clock").textContent = fmt(d.getHours()*60+d.getMinutes());
+    document.getElementById("date").textContent = d.toLocaleDateString(t("locale"),{weekday:"long",day:"numeric",month:"long"});
+  }
+
+  document.getElementById("gear").addEventListener("click",function(){
+    if(ui.leader){ ui.leader=false; render(); return; }
+    modal({title:t("leaderTitle"),text:t("leaderText"),
+      input:{type:"password",placeholder:t("passPh"),cap:"off",max:30},okLabel:t("open"),
+      onOk:function(v){ if(v!==state.cfg.password) return t("wrongPass"); ui.leader=true; render(); }});
+  });
+
+  tick(); render();
+  setInterval(function(){
+    tick();
+    if(document.querySelector(".overlay") || ui.leader) return;
+    render();
+  }, 30000);
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden){ tick(); if(!document.querySelector(".overlay") && !ui.leader) render(); }
+  });
+})();
+</script>
+</body>
+</html>
